@@ -1,0 +1,129 @@
+//signup.html
+
+<!DOCTYPE html>
+<html>
+<head>
+ <title>signup</title>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+ <style>  
+  * {
+  box-sizing: border-box;
+}
+
+body {
+  padding: 0;
+  margin: 0;
+  font-family: 'Open Sans', sans-serif;
+}
+h1 {
+  text-align: center;
+}
+form {
+  display: inline;
+}
+.form-control {
+  margin: 1rem 0;
+}
+
+.form-control label,
+.form-control input {
+  display: block;
+  width: 100%;
+  margin-bottom: 0.25rem;
+}
+
+.form-control input {
+  border: 1px solid #c52222;
+  font: inherit;
+  border-radius: 2px;
+}
+
+.form-control input:focus{
+  outline-color: #00695c;
+}
+
+</style>
+</head>
+ <body>
+    <div class="container" >
+      <h1>Sign Up</h1>
+     <div class="row">
+      <div class="col-md-6 mx-auto">
+       <form onsubmit="adduser(event)">
+        <div class="form-group">
+            <label for="username">User Name :</label>
+            <input type="text" id="username" name="username" class="form-control" required>
+           </div>
+           <div class="form-group">
+            <label for="email">Email Adress:</label>
+            <input type="email" id="email" name="email" class="form-control" required>
+           </div>
+           <div class="form-group">
+            <label for="password">Password :</label>
+            <input type="password" id="password" name="password" class="form-control" required>
+           </div>
+           <div class="form-group">
+            <button type="submit" id="addButton" class="btn btn-primary">Sign Up</button>
+           </div>
+       </form>
+  
+      </div>
+     </div></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js"></script>
+    
+    <script>
+    // add user 
+    function adduser(event) {
+      event.preventDefault();
+      const name=document.getElementById('username').value;
+      const email=document.getElementById('email').value;
+      const password=document.getElementById('password').value;
+      const obj={
+        name,
+        email,
+        password
+      }
+        axios.post('http://localhost:2000/user/signup',obj)
+    }
+//app.js file
+
+const path = require('path');
+const express = require('express');
+const bodyParser = require('body-parser');
+const errorController = require('./controllers/error');
+const cors=require('cors');
+
+const app = express();
+
+const userRoutes = require('./routes/signup');
+
+app.use(cors());
+app.use(bodyParser.json({ extended: false }));
+app.use('/user', userRoutes);
+app.use(errorController.get404);
+app.listen(2000);
+
+//signup.js file routes
+
+const path = require('path');
+
+const express = require('express');
+
+const userController = require('../controllers/signup');
+
+const router = express.Router();
+
+router.post('/signup', userController.AddUser);
+
+module.exports = router;
+
+//signup.js controllers
+
+const path = require('path');
+exports.AddUser = (req, res, next) => {
+  console.log(req.body);
+      res.json(req.body);
+};
+
