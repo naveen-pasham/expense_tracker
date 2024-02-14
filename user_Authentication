@@ -1,0 +1,452 @@
+//app.js file
+const path = require('path');
+
+const express = require('express');
+const bodyParser = require('body-parser');
+
+const errorController = require('./controllers/error');
+const sequelize=require('./util/database');
+const cors=require('cors');
+
+const User=require('./models/signup');
+const Expenses=require('./models/addexpense');
+
+const app = express();
+
+const userRoutes = require('./routes/signup');
+const expenseRoutes = require('./routes/addexpense');
+
+app.use(cors());
+app.use(bodyParser.json({ extended: false }));
+
+app.use('/user', userRoutes);
+app.use('/userexpense', expenseRoutes);
+
+
+User.hasMany(Expenses);
+Expenses.belongsTo(User);
+
+
+
+app.use(errorController.get404);
+
+sequelize
+//.sync({force: true})
+.sync()
+  .then(result => {
+    app.listen(3000);
+  })
+  .catch(err => {
+    console.log(err);
+  });
+
+//addexpense.js in routes
+
+const path = require('path');
+
+const express = require('express');
+const userauthentication = require('../middleware/auth')
+
+const expenseController = require('../controllers/addexpense');
+
+const router = express.Router();
+
+router.post('/addexpense', expenseController.AddExpense);
+router.get('/getexpenses',userauthentication.authenticate , expenseController.getexpenses);
+router.get('/deleteexpense/:expenseId', expenseController.deleteexpense);
+
+
+module.exports = router;
+
+//addexpense.js in controllers
+
+const path = require('path');
+const Expense = require('../models/addexpense');
+
+
+exports.AddExpense = async(req, res) => {
+  try{
+  const amount=req.body.expenseamount;
+  const description=req.body.description;
+  const category=req.body.category;
+  const userId=req.body.userId;
+  const expensdata=await Expense.create({
+    amount:amount,
+    description:description,
+    category:category,
+    userId:userId
+  });
+   return  res.json(expensdata);
+  }
+catch(err){
+ res.status(500).json(err);
+}
+
+};
+
+exports.getexpenses=(req,res,next)=>{
+
+  req.user.getExpenses().then(expense=>{
+    res.json(expense);
+  }).catch(err=>console.log(err))
+};
+
+exports.deleteexpense=async (req,res,next)=>{
+  try{
+        const expenseid=req.params.expenseId;
+        const expense=await Expense.findOne({whre:{id:expenseid}});
+        const deletedexpense= await expense.destroy();
+        return res.json(deletedexpense);
+  }
+  catch(err){
+   console.log(err)
+  }
+}
+
+
+//signup.js in controllers
+
+const path = require('path');
+const User = require('../models/signup');
+const jwt = require('jsonwebtoken');
+const bcrypt=require('bcrypt');
+
+exports.AddUser = async(req, res) => {
+  try{
+  const username=req.body.name;
+  const email=req.body.email;
+  const password=req.body.password;
+  bcrypt.hash(password,10,async(err,hash)=>{
+  await User.create({
+    username:username,
+    email:email,
+    password:hash
+  });
+   return  res.status(201).json({message:"Succesfully Created New User"});
+  })
+}
+catch(err){
+ res.status(500).json(err);
+}
+
+};
+
+function generateAccessToken(id) {
+  return jwt.sign({userId:id} ,'576788yuihjhdjhoijoidjoj6787898090ihjikjlkkllklmlml');
+}
+
+exports.getuser=(req,res,next)=>{
+  const email=req.params.useremail
+  User.findOne({where :{email:email}}).then(user=>{
+    res.json(user);
+  }).catch(err=>console.log(err))
+};
+
+exports.checkuser=async (req,res,next)=>{
+  try{
+  const email=req.body.email;
+  const password= req.body.password;
+  const user=await User.findOne({where:{email:email}});
+    if(user){
+      bcrypt.compare(password,user.password,(err,re)=>{
+        if(!err){
+          if(re){
+          return res.json({success:true,message:"User Login Sucessfully!!",token:generateAccessToken(user.id)});
+          }
+        else{
+            return res.status(401).json({success:false,message:'Incorrect Password'});
+        }
+      }
+      
+      });
+    }
+  else{
+    return res.status(404).json({message:"User Doesn't Exist"});
+    }
+  
+  }
+  catch(err){
+   console.log(err)
+  }
+}
+
+
+//auth.js in middleware
+
+const jwt = require('jsonwebtoken');
+const User = require('../models/signup');
+
+const authenticate = (req, res, next) => {
+
+    try {
+        const token = req.header('authorization');
+        console.log(token);
+        const user = jwt.verify(token, process.env.TOKEN_SECRET);
+        User.findByPk(user.userid).then(user => {
+            console.log(JSON.stringify(user));
+            req.user = user;
+            next();
+        })
+
+      } catch(err) {
+        console.log(err);
+        return res.status(401).json({success: false})
+        // err
+      }
+
+}
+
+module.exports = {
+    authenticate
+}
+
+//addexpense.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <title>Add Expense</title>
+    <style>
+        body{
+            margin: 5%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 mx-auto">
+    <form onsubmit="expense(event)">
+        <div class="form-group">
+        <label for="expenseamount">Choose expenseamount:</label>
+        <input type="number" name="expenseamount" id="expenseamount" class="form-control" required> </input>
+        </div>
+        <div class="form-group">
+        <label for="description">Choose description:</label>
+        <input type="text" name="description" id="description" class="form-control" required> </input>
+        </div>
+        <div class="form-group">
+        <label for="category">Choose a category:</label>
+        <select id="category" name="category" id="category" class="form-control" required>
+            <option value="select category">select category</option>
+            <option value="fuel">fuel</option>
+            <option value="food">food</option>
+            <option value="electricity">electricity</option>
+            <option value="Movie">Movie</option>
+        </select></div>
+        <div class="form-group">
+        <button class="btn btn-primary">Add Expense</button></div>
+    </form>
+        </div></div>
+        <table class="table table-striped table-bordered" id="expenseTable">
+            <thead>
+             <tr>
+              <th hidden>Expense id</th>   
+              <th>Amount</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th>Actions</th>
+             </tr>
+            </thead>
+            <tbody></tbody>
+           </table>
+        </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js"></script>
+    <script>
+        // add user 
+        async function expense(event) {
+          try{
+          event.preventDefault();
+          const expenseamount=  document.getElementById('expenseamount').value;
+          const description= document.getElementById('description').value;
+          const category=document.getElementById('category').value;
+          const userId=localStorage.getItem('token');
+          console.log(userId)
+          const obj={
+            expenseamount,
+            description,
+            category,
+            userId
+          }
+        
+           const expensedata=await axios.post('http://localhost:3000/userexpense/addexpense',obj);
+           showNewExpenseOnScreen(expensedata.data);
+          }
+          catch(error){
+           console.log(error);
+          }
+          resetForm();
+        }
+
+        window.addEventListener("DOMContentLoaded",  () =>{
+            const userId=localStorage.getItem('token');
+         axios.get(`http://localhost:3000/userexpense/getexpenses`).then(response=>{
+          for(var i=0;i<response.data.length;i++){
+            showNewExpenseOnScreen(response.data[i])
+          }
+        }).catch(err=>console.log(err));
+    
+});
+
+        
+//delete user
+
+function removeExpense(row) {
+    row.parentNode.removeChild(row);
+    const id= row.cells[0].innerHTML;
+      axios.get(`http://localhost:3000/userexpense/deleteexpense/${id}`) 
+    }
+
+    //reset form
+
+    function resetForm(){
+        document.getElementById('expenseamount').value='';
+        document.getElementById('description').value='';
+        document.getElementById('category').value='';
+        // document.getElementById('userId').value = '';
+        // document.getElementById('rowIndex').value = '';
+        // document.getElementById('addButton').innerHTML = 'Add E';
+    }
+
+    function showNewExpenseOnScreen(expense){
+         let tableBody =  document.getElementById('expenseTable').getElementsByTagName('tbody')[0];
+          let row = '<tr><td hidden>'+expense.id+'</td><td>' + expense.amount + '</td><td>' + expense.description + '</td><td>' + expense.category + '</td><td><button type="button" class="btn btn-sm btn-danger" onclick="removeExpense(this.parentNode.parentNode)">Delete</button></td></tr>';
+          tableBody.insertAdjacentHTML('beforeend', row);
+    }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+
+   
+</body>
+</html>
+
+//login.html
+
+<!DOCTYPE html>
+<html>
+<head>
+ <title>signup</title>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+ <style>  
+ 
+
+body {
+  
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+        
+ .container {
+     margin-top: 100px;
+ }
+ form {
+  margin: 50px;
+     padding: 10px;
+     background-color: white;
+     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+     border-radius: 5px;
+ }
+ label {
+     font-weight: bold;
+ }
+ .form-control {
+     margin-bottom: 10px;
+ }
+ .btn {
+     background-color: #007bff;
+     position: relative;
+     width: 100%;
+     color: #ffffff;
+     border: none;
+     padding: 10px 20px;
+     border-radius: 5px;
+     cursor: pointer;
+ }
+ .btn:hover {
+     background-color: #0056b3;
+ }
+ h1{
+    position: relative;;
+    padding: 20px;
+     color: #04d547;
+     font-family: sans-serif;
+     text-align: center;
+ }
+ #userstatus{
+    font-family: sans-serif;
+    color: #04d547;
+ }
+</style>
+</head>
+ <body>
+    
+    
+    <div class="container" >
+      
+      
+     <div class="row">
+      <div class="col-md-6 mx-auto">
+       <form onsubmit="user(event)">
+            <h1>Sign In</h1>
+            <h3 id="userstatus"></h3>
+           <div class="form-group">
+            <label for="email">Email Adress:</label>
+            <input type="email" id="email" name="email" class="form-control" required>
+           </div>
+           <div class="form-group">
+            <label for="password">Password :</label>
+            <input type="password" id="password" name="password" class="form-control" required>
+           </div>
+         
+           <div class="form-group">
+            <button type="submit" id="login" class="btn btn-primary">Login</button>
+           </div><br>
+           <div class="form-group">
+            <button type="submit" id="signup" class="btn btn-primary">Create New user</button>
+           </div>           
+       </form>
+      
+      </div>
+     </div></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js"></script>
+    
+    <script>
+    // add user 
+    async function user(event) {
+      try{
+      event.preventDefault();
+      const email=  document.getElementById('email').value;
+      const password= document.getElementById('password').value;
+      const usesrstatus=document.getElementById('userstatus');
+      const obj={
+        email,
+        password
+      }
+    
+       const logindata=await axios.post('http://localhost:3000/user/login',obj);
+         usesrstatus.innerText=logindata.data.message;
+          if(logindata.data.message==="User Login Sucessfully!!"){
+            localStorage.setItem('token', logindata.data.token);
+          window.location.href = "./addexpense.html" 
+        }
+      }
+      catch(error){
+        console.log(error)
+        const usesrstatus=document.getElementById('userstatus');
+        usesrstatus.innerText=error.response.data.message;
+      }
+    }
+    document.getElementById('signup').addEventListener('click',()=>{
+      window.location.href = "./signup.html" 
+    })
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+ </body></html>
