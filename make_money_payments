@@ -1,0 +1,231 @@
+//app.js file
+const path = require('path');
+
+const express = require('express');
+const bodyParser = require('body-parser');
+
+const errorController = require('./controllers/error');
+const sequelize=require('./util/database');
+const cors=require('cors');
+
+const User=require('./models/signup');
+const Expense=require('./models/addexpense');
+const Order = require('./models/orders');
+
+const app = express();
+
+const userRoutes = require('./routes/signup');
+const expenseRoutes = require('./routes/addexpense');
+const purchaseRoutes = require('./routes/purchase')
+
+app.use(cors());
+app.use(bodyParser.json({ extended: false }));
+
+app.use('/user', userRoutes);
+app.use('/userexpense', expenseRoutes);
+app.use('/purchase', purchaseRoutes)
+
+
+User.hasMany(Expense);
+Expense.belongsTo(User);
+
+User.hasMany(Order);
+Order.belongsTo(User);
+
+app.use(errorController.get404);
+
+sequelize
+//.sync({force: true})
+.sync()
+  .then(result => {
+    app.listen(3000);
+  })
+  .catch(err => {
+    console.log(err);
+  });
+
+
+  //purchase.js in routes
+
+  const express = require('express');
+
+const purchaseController = require('../controllers/purchase');
+
+const authenticatemiddleware = require('../middleware/auth');
+
+const router = express.Router();
+
+router.get('/premiummembership', authenticatemiddleware.authenticate,purchaseController.purchasepremium);
+
+router.post('/updatetransactionstatus', authenticatemiddleware.authenticate, purchaseController.updateTransactionStatus)
+
+module.exports = router;
+
+//purchase.js in controllers
+
+const Razorpay = require('razorpay');
+const Order = require('../models/orders')
+
+
+const purchasepremium =async (req, res) => {
+    try {
+        console.log(process.env.RAZORPAY_KEY_ID)
+        var rzp = new Razorpay({
+            key_id: 'rzp_test_7OdhouhsmXqxfc',
+            key_secret: 'wCunelJhXVAljVEzyZp5vWa3'
+        })
+        console.log(rzp);
+        const amount = 2500;
+
+        rzp.orders.create({amount, currency: "INR"}, (err, order) => {
+            if(err) {
+                throw new Error(err);
+            }
+            req.user.createOrder({ orderid: order.id, status: 'PENDING'}).then(() => {
+                return res.status(201).json({ order, key_id : rzp.key_id});
+
+            }).catch(err => {
+                throw new Error(err)
+            })
+        })
+    } catch(err){
+        console.log(err);
+        res.status(403).json({ message: 'Sometghing went wrong', error: err})
+    }
+}
+
+ const updateTransactionStatus = (req, res ) => {
+    try {
+        const { payment_id, order_id} = req.body;
+        Order.findOne({where : {orderid : order_id}}).then(order => {
+            order.update({ paymentid: payment_id, status: 'SUCCESSFUL'}).then(() => {
+                req.user.update({ispremiumuser: true})
+                return res.status(202).json({sucess: true, message: "Transaction Successful"});
+            }).catch((err)=> {
+                throw new Error(err);
+            })
+        }).catch(err => {
+            throw new Error(err);
+        })
+    } catch (err) {
+        console.log(err);
+        res.status(403).json({ errpr: err, message: 'Sometghing went wrong' })
+
+    }
+}
+
+module.exports = {
+    purchasepremium,
+    updateTransactionStatus
+}
+
+//addexpense.js file frontend
+
+// add user 
+async function expense(event) {
+  try{
+  event.preventDefault();
+  const expenseamount=  document.getElementById('expenseamount').value;
+  const description= document.getElementById('description').value;
+  const category=document.getElementById('category').value;
+  const userId=localStorage.getItem('token');
+  const obj={
+    expenseamount,
+    description,
+    category
+  }
+
+   const expensedata=await axios.post('http://localhost:3000/userexpense/addexpense',obj,{ headers: { "Authorization": userId } });
+   showNewExpenseOnScreen(expensedata.data);
+  }
+  catch(error){
+   console.log(error);
+  }
+  resetForm();
+}
+
+window.addEventListener("DOMContentLoaded",  () =>{
+    const userId=localStorage.getItem('token');
+ axios.get('http://localhost:3000/userexpense/getexpenses',{ headers: { "Authorization": userId } }).then(response=>{
+  for(var i=0;i<response.data.length;i++){
+    showNewExpenseOnScreen(response.data[i])
+  }
+}).catch(err=>console.log(err));
+
+});
+
+
+//delete user
+
+function removeExpense(row) {
+row.parentNode.removeChild(row);
+const id= row.cells[0].innerHTML;
+axios.get(`http://localhost:3000/userexpense/deleteexpense/${id}`) 
+}
+
+//reset form
+
+function resetForm(){
+document.getElementById('expenseamount').value='';
+document.getElementById('description').value='';
+document.getElementById('category').value='';
+// document.getElementById('userId').value = '';
+// document.getElementById('rowIndex').value = '';
+// document.getElementById('addButton').innerHTML = 'Add E';
+}
+
+function showNewExpenseOnScreen(expense){
+ let tableBody =  document.getElementById('expenseTable').getElementsByTagName('tbody')[0];
+  let row = '<tr><td hidden>'+expense.id+'</td><td>' + expense.amount + '</td><td>' + expense.description + '</td><td>' + expense.category + '</td><td><button type="button" class="btn btn-sm btn-danger" onclick="removeExpense(this.parentNode.parentNode)">Delete</button></td></tr>';
+  tableBody.insertAdjacentHTML('beforeend', row);
+}
+
+document.getElementById('rzp-button1').addEventListener('click', async function (e) {
+    const token=localStorage.getItem('token');
+    const response = await axios.get('http://localhost:3000/purchase/premiummembership', { headers: { "Authorization": token } });
+    console.log(response);
+    var options = {
+        "key": response.data.key_id,
+        "order_id": response.data.order.id,
+        "handler": function (response) {
+            console.log(response);
+            axios.post('http://localhost:3000/purchase/updatetransactionstatus', {
+                order_id: options.order_id,
+                payment_id: response.razorpay_payment_id,
+            }, { headers: { "Authorization": token } })
+                .then(() => {
+                    alert('You are a Premium User Now');
+                })
+                .catch(() => {
+                    alert('Something went wrong. Try Again!!!');
+                });
+        }
+    };
+    const rzp1 = new Razorpay(options);
+    rzp1.open();
+    e.preventDefault();
+
+    rzp1.on('payment.failed', function (response) {
+        alert("Something Went Wrong");
+    });
+});
+
+//orders.js in models
+const Sequelize = require('sequelize');
+const sequelize = require('../util/database');
+
+
+
+const Order = sequelize.define('order', {
+    id: {
+        type: Sequelize.INTEGER,
+        autoIncrement: true,
+        allowNull: false,
+        primaryKey: true
+    },
+    paymentid: Sequelize.STRING,
+    orderid: Sequelize.STRING,
+    status: Sequelize.STRING
+})
+
+module.exports = Order;
