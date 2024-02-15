@@ -1,0 +1,45 @@
+//premium.js in controllers
+
+const path = require('path');
+const Expense = require('../models/addexpense');
+const User = require('../models/signup');
+const sequelize = require('sequelize');
+const db=require('../util/database')
+
+
+const getexpenses=async(req,res)=>{
+    try{
+        const userLeaderBoardDetails=await User.findAll({
+            attributes:['id','username',[db.fn('sum',db.col('amount')),'total_cost']],
+            include:[{
+                model:Expense,
+                attributes:[]
+            }],
+            group:['user.id'],
+            order:[['total_cost','DESC']]
+   
+        res.status(200).json(userLeaderBoardDetails)
+    }
+    catch(err){
+        console.log(err);
+        res.status(500).json(err);
+    }
+};
+module.exports={
+    getexpenses
+}
+
+//premium.js frontend
+
+document.getElementById('showleaderboard').onclick=async function(e){
+    e.preventDefault();
+    document.getElementById('listexpenses').innerText='Leader Board';
+    const showexpense= await axios.get('http://localhost:3000/premium/showleaderboard');
+    console.log(showexpense)
+    for(let i=0;i<showexpense.data.length;i++){
+        let ullist =  document.getElementById('listexpenses');
+         let row = '<li>Name -'+showexpense.data.name+'    Total Expense-' + showexpense.data.total_cost + '</li>';
+         ullist.insertAdjacentHTML('beforeend', row);
+        
+    }
+}
