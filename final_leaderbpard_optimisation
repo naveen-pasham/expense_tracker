@@ -1,0 +1,122 @@
+///signup.js in models
+
+const Sequelize = require('sequelize');
+
+const sequelize = require('../util/database');
+
+const User = sequelize.define('user', {
+  id: {
+    type: Sequelize.INTEGER,
+    autoIncrement: true,
+    allowNull: false,
+    primaryKey: true
+  },
+  username: {
+    type: Sequelize.STRING,
+    allowNull: false
+  },
+  email: {
+    type: Sequelize.STRING,
+    allowNull: false,
+    unique: true
+  },
+  password: {
+    type: Sequelize.STRING,
+    allowNull: false,
+  },
+  ispremiumuser: Sequelize.BOOLEAN,
+  totalexpenses: Sequelize.INTEGER
+});
+
+module.exports = User;
+
+//addexpense.js in controllers
+
+const path = require('path');
+const Expense = require('../models/addexpense');
+
+
+exports.AddExpense = async(req, res) => {
+  try{
+  const amount=req.body.expenseamount;
+  const description=req.body.description;
+  const category=req.body.category;
+  const expensdata=await Expense.create({
+    amount:amount,
+    description:description,
+    category:category,
+    userId:req.user.id
+  });
+  Expense.findAll({where:{userId:req.user.id}}).then(expenses=>{
+    let expenseamount=0;
+    expenses.forEach(element => {
+      expenseamount=expenseamount+element.amount;
+    });
+    console.log(expenses)
+    req.user.update({totalexpenses:expenseamount})
+  })
+
+   return  res.json(expensdata);
+  }
+catch(err){
+ res.status(500).json(err);
+}
+
+};
+
+exports.getexpenses=(req,res,next)=>{
+
+Expense.findAll({where:{userId:req.user.id}}).then(expense=>{
+    res.json({expense,user:req.user});
+  }).catch(err=>console.log(err))
+};
+
+exports.deleteexpense=async (req,res,next)=>{
+  try{
+        const expenseid=req.params.expenseId;
+        const expense=await Expense.findOne({whre:{id:expenseid}});
+        const deletedexpense= await expense.destroy();
+        return res.json(deletedexpense);
+  }
+  catch(err){
+   console.log(err)
+  }
+}
+
+///premium.js in controllers
+
+const path = require('path');
+const User = require('../models/signup');
+
+const getexpenses=async(req,res)=>{
+    try{
+        const userLeaderBoardDetails= await User.findAll({attributes:['username','totalexpenses']});
+        console.log(userLeaderBoardDetails)
+
+        res.status(200).json(userLeaderBoardDetails)
+
+    }
+    catch(err){
+        console.log(err);
+        res.status(500).json(err);
+    }
+};
+module.exports={
+    getexpenses
+}
+
+
+///showleaderboard.js file frontend
+
+document.getElementById('showleaderboard').onclick=async function(e){
+    e.preventDefault();
+    document.getElementById('listexpenses').innerText='Leader Board';
+    const showexpense= await axios.get('http://localhost:3000/premium/showleaderboard');
+    console.log(showexpense)
+    showexpense.data.forEach((expense) => {
+        let ullist =  document.getElementById('listexpenses');
+        let row = '<li>Name -'+expense.username+'    Total Expense-' + expense.totalexpenses + '</li>';
+        ullist.insertAdjacentHTML('beforeend', row);
+    });
+        
+    }
