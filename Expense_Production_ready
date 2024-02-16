@@ -1,0 +1,62 @@
+// addexpense.js file in controlers
+
+const path = require('path');
+const Expense = require('../models/addexpense');
+const sequelize = require('../util/database');
+
+
+
+exports.AddExpense = async(req, res) => {
+  try{
+    const t= await sequelize.transaction();
+  const amount=req.body.expenseamount;
+  const description=req.body.description;
+  const category=req.body.category;
+  const expensdata=await Expense.create({
+    amount:amount,
+    description:description,
+    category:category,
+    userId:req.user.id
+  },{transaction:t});
+    let expenseamount=parseInt(req.user.totalexpenses);
+      expenseamount=expenseamount+parseInt(expensdata.amount);
+   await req.user.update({totalexpenses:expenseamount},{transaction:t});
+    await t.commit();
+   return  res.json(expensdata);
+  }
+catch(err){
+  await t.rollback();
+ res.status(500).json(err);
+}
+
+};
+
+exports.getexpenses=(req,res,next)=>{
+
+Expense.findAll({where:{userId:req.user.id}}).then(expense=>{
+    res.json({expense,user:req.user});
+  }).catch(err=>console.log(err))
+};
+
+exports.deleteexpense=async (req,res,next)=>{
+  const t= await sequelize.transaction();
+  try{
+        const expenseid=req.params.expenseId;
+        const expense=await Expense.findOne({where:{id:expenseid},transaction:t});
+      //  console.log(expense);
+        const deletedexpense= await expense.destroy();
+       // console.log(deletedexpense)
+        let expenseamount=parseInt(req.user.totalexpenses);
+        console.log(expenseamount)
+        expenseamount=expenseamount-parseInt(expense.amount);
+       await req.user.update({totalexpenses:expenseamount},{transaction:t});
+        await t.commit();
+        return res.json(deletedexpense);
+  }
+  catch(err){
+    await t.rollback();
+   console.log(err)
+  }
+}
+
+
