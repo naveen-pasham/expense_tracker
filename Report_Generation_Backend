@@ -1,0 +1,377 @@
+///addexpenses.js controllers
+
+const path = require('path');
+const Expense = require('../models/addexpense');
+const sequelize = require('../util/database');
+
+const Userservices=require('../Services/userservices');
+const S3services=require('../Services/s3services');
+
+exports.downloadExpenses=async(req,res)=>{
+  try{
+    const expenses=await Userservices.getExpenses(req);
+    console.log(expenses);
+    const stringyfiedExpenses=JSON.stringify(expenses);
+    const userId=req.user.id;
+    const filename=`Expense${userId}/${new Date()}.txt`;
+    const fileUrl= await S3services.uploadToS3(stringyfiedExpenses,filename);
+    console.log(fileUrl);
+    res.status(200).json({fileUrl,success:true})
+  }
+  catch(err){
+    console.log(err);
+    res.status(500).json({fileUrl:'',success:false,err:err});
+  }
+}
+
+
+
+exports.AddExpense = async(req, res) => {
+  try{
+    const t= await sequelize.transaction();
+  const amount=req.body.expenseamount;
+  const description=req.body.description;
+  const category=req.body.category;
+  const expensdata=await Expense.create({
+    amount:amount,
+    description:description,
+    category:category,
+    userId:req.user.id
+  },{transaction:t});
+    let expenseamount=parseInt(req.user.totalexpenses);
+      expenseamount=expenseamount+parseInt(expensdata.amount);
+   await req.user.update({totalexpenses:expenseamount},{transaction:t});
+    await t.commit();
+   return  res.json(expensdata);
+  }
+catch(err){
+  await t.rollback();
+ res.status(500).json(err);
+}
+
+};
+
+exports.getexpenses=(req,res,next)=>{
+
+Expense.findAll({where:{userId:req.user.id}}).then(expense=>{
+    res.json({expense,user:req.user});
+  }).catch(err=>console.log(err))
+};
+
+exports.deleteexpense=async (req,res,next)=>{
+  const t= await sequelize.transaction();
+  try{
+        const expenseid=req.params.expenseId;
+        const expense=await Expense.findOne({where:{id:expenseid}});
+        const deletedexpense= await expense.destroy({transaction:t});
+        let expenseamount=parseInt(req.user.totalexpenses);
+        expenseamount=expenseamount-parseInt(expense.amount);
+       await req.user.update({totalexpenses:expenseamount},{transaction:t});
+        await t.commit();
+        return res.json(deletedexpense);
+  }
+  catch(err){
+    await t.rollback();
+   console.log(err)
+  }
+}
+
+////s3services.js in services
+
+const AWS=require('aws-sdk');
+const uploadToS3=(data,fileName)=>{
+    const BUCKET_NAME=process.env.BUCKET_NAME;
+    const IAM_USER_KEY=process.env.IAM_USER_KEY;
+    const  IAM_USER_SECRET=process.env.IAM_USER_SECRET;
+
+    let s3bucket=new AWS.S3({
+        accessKeyId:IAM_USER_KEY,
+        secretAccessKey: IAM_USER_SECRET,
+        Bucket:BUCKET_NAME  
+    })
+
+    var params={
+        Bucket:BUCKET_NAME,
+        Key:fileName,
+        Body:data,
+        ACL:'public-read'
+    }
+    return new Promise((resolve,reject)=>{
+        s3bucket.upload(params,(err,s3response)=>{
+            if(err){
+                console.log('something went wrong',err);
+                reject(err);
+            }
+            else{
+                console.log('sucess',s3response);
+                resolve(s3response.Location);
+            }
+        })
+    })
+    
+}
+module.exports={
+    uploadToS3
+}
+
+
+///usersrvices.js in services
+
+const getExpenses=(req,where)=>{
+    return req.user.getExpenses(where);
+
+}
+module.exports={
+    getExpenses
+}
+
+
+//filedownload.js in models
+
+const Sequelize=require('sequelize');
+const sequelize=require('../util/database');
+const file =sequelize.define('filedownloaded',{
+    id:{
+        type:Sequelize.INTEGER,
+        autoIncrement: true,
+        allowNull:false,
+        primaryKey:true
+    },
+    fileurl:{
+        type:Sequelize.STRING,
+        allowNull:false
+    }
+   
+});
+
+module.exports=file;
+
+//addexpense.js frontend
+
+
+// add user 
+
+const token=localStorage.getItem('token');
+async function expense(event) {
+  try{
+  event.preventDefault();
+  const expenseamount=  document.getElementById('expenseamount').value;
+  const description= document.getElementById('description').value;
+  const category=document.getElementById('category').value;
+
+  const obj={
+    expenseamount,
+    description,
+    category
+  }
+
+   const expensedata=await axios.post('http://localhost:3000/userexpense/addexpense',obj,{ headers: { "Authorization": token } });
+   showNewExpenseOnScreen(expensedata.data);
+//    const showexpense= await axios.get('http://localhost:3000/premium/showleaderboard');
+//     console.log(showexpense)
+//     showexpense.data.forEach((expense) => {
+//         let ullist =  document.getElementById('listexpenses');
+//         let row = '<li>Name -'+expense.username+'    Total Expense-' + expense.total_cost + '</li>';
+//         ullist.appendChild('beforeend', row);
+//     });
+  }
+  catch(error){
+   console.log(error);
+  }
+  resetForm();
+}
+
+window.addEventListener("DOMContentLoaded",  () =>{
+
+    const rzpbutton=document.getElementById('rzp-button1');
+ axios.get('http://localhost:3000/userexpense/getexpenses',{ headers: { "Authorization": token } }).then(response=>{
+  console.log(response)
+  if(response.data.user.ispremiumuser===true){
+    rzpbutton.parentNode.removeChild(rzpbutton);
+   const p=document.createElement('p');
+   const txt=document.createTextNode('You are a Premium User');
+   p.appendChild(txt);
+   document.body.appendChild(p);
+
+   const downloadexpense=document.createElement('button');
+   const downloadexpensetxt=document.createTextNode('Download Expenses');
+   downloadexpense.appendChild(downloadexpensetxt);
+   document.body.appendChild(downloadexpense);
+
+  }
+  for(var i=0;i<response.data.expense.length;i++){
+    showNewExpenseOnScreen(response.data.expense[i])
+  }
+}).catch(err=>console.log(err));
+
+});
+
+
+//delete user
+
+function removeExpense(row) {
+row.parentNode.removeChild(row);
+const id= row.cells[0].innerHTML;
+axios.get(`http://localhost:3000/userexpense/deleteexpense/${id}`,{ headers: { "Authorization": token } }) 
+}
+
+//reset form
+
+function resetForm(){
+document.getElementById('expenseamount').value='';
+document.getElementById('description').value='';
+document.getElementById('category').value='';
+// document.getElementById('userId').value = '';
+// document.getElementById('rowIndex').value = '';
+// document.getElementById('addButton').innerHTML = 'Add E';
+}
+
+function showNewExpenseOnScreen(expense){
+ let tableBody =  document.getElementById('expenseTable').getElementsByTagName('tbody')[0];
+  let row = '<tr><td hidden>'+expense.id+'</td><td>' + expense.amount + '</td><td>' + expense.description + '</td><td>' + expense.category + '</td><td><button type="button" class="btn btn-sm btn-danger" onclick="removeExpense(this.parentNode.parentNode)">Delete</button></td></tr>';
+  tableBody.insertAdjacentHTML('beforeend', row);
+}
+
+
+
+function download() {
+  axios.get('http://localhost:3000/user/download', { headers: { "Authorization": token } })
+      .then((response) => {
+          if (response.status === 201) {
+              var a = document.createElement("a");
+              a.href = response.data.fileUrl;
+              a.download = 'myexpense.csv';
+              a.click();
+          } else {
+              throw new Error(response.data.message);
+          }
+      })
+      .catch((err) => {
+          showError(err);
+      });
+}
+
+document.getElementById('rzp-button1').addEventListener('click', async function (e) {
+    const rzpbutton=document.getElementById('rzp-button1');
+    const response = await axios.get('http://localhost:3000/purchase/premiummembership', { headers: { "Authorization": token } });
+ //   console.log(response);
+    var options = {
+        "key": response.data.key_id,
+        "order_id": response.data.order.id,
+        "handler": function (response) {
+           // console.log(response);
+            axios.post('http://localhost:3000/purchase/updatetransactionstatus', {
+                order_id: options.order_id,
+                payment_id: response.razorpay_payment_id,
+            }, { headers: { "Authorization": token } })
+                .then(() => {
+                    alert('You are a Premium User Now');
+                    rzpbutton.parentNode.removeChild(rzpbutton);
+                    const p=document.createElement('p');
+                    const txt=document.createTextNode('You are a Premium User');
+                    p.appendChild(txt);
+                    document.body.appendChild(p);
+                })
+                .catch(() => {
+                    alert('Something went wrong. Try Again!!!');
+                });
+        }
+    };
+    const rzp1 = new Razorpay(options);
+    rzp1.open();
+    e.preventDefault();
+
+    rzp1.on('payment.failed', function (response) {
+     // console.log(response);
+       // alert("Something Went Wrong");
+       axios.post('http://localhost:3000/purchase/updatetransactionstatus', {
+        order_id: response.error.metadata.order_id,
+        payment_id: response.error.metadata.payment_id,
+        reason:response.error.reason
+    }, { headers: { "Authorization": token } })
+        .then(() => {
+            alert('Your Payment Failed');
+        })
+        .catch(() => {
+            alert('Something went wrong. Try Again!!!');
+        });
+        // alert(response.error.code);
+        // alert(response.error.description);
+        // alert(response.error.source);
+        // alert(response.error.step);
+        // alert(response.error.reason);
+        // alert(response.error.metadata.order_id);
+        // alert(response.error.metadata.payment_id);
+    });
+});
+
+//addexpense.html frontend
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <title>Add Expense</title>
+    <style>
+        body{
+            margin: 5%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 mx-auto">
+    <form onsubmit="expense(event)">
+        <div class="form-group">
+        <label for="expenseamount">Choose expenseamount:</label>
+        <input type="number" name="expenseamount" id="expenseamount" class="form-control" required> </input>
+        </div>
+        <div class="form-group">
+        <label for="description">Choose description:</label>
+        <input type="text" name="description" id="description" class="form-control" required> </input>
+        </div>
+        <div class="form-group">
+        <label for="category">Choose a category:</label>
+        <select id="category" name="category" id="category" class="form-control" required>
+            <option value="select category">select category</option>
+            <option value="fuel">fuel</option>
+            <option value="food">food</option>
+            <option value="electricity">electricity</option>
+            <option value="Movie">Movie</option>
+        </select></div>
+        <div class="form-group">
+        <button class="btn btn-primary">Add Expense</button></div>
+    </form>
+        </div></div>
+        <table class="table table-striped table-bordered" id="expenseTable">
+            <thead>
+             <tr>
+              <th hidden>Expense id</th>   
+              <th>Amount</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th>Actions</th>
+             </tr>
+            </thead>
+            <tbody></tbody>
+           </table>
+        </div>
+        <button id="rzp-button1">Buy Premium</button>
+        <button onclick="download()" id="downloadexpense">Download File</button>
+        <ul id="listexpenses"></ul>
+        
+        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js"></script>
+    <script src="addexpense.js"></script>
+    <script src="showleaderboard.js"></script>
+   
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+
+   
+</body>
+</html>
