@@ -1,0 +1,304 @@
+// addexpense.js file frontend
+
+
+// add user 
+
+const { default: axios } = require("axios");
+
+const token=localStorage.getItem('token');
+async function expense(event) {
+  try{
+  event.preventDefault();
+  const expenseamount=  document.getElementById('expenseamount').value;
+  const description= document.getElementById('description').value;
+  const category=document.getElementById('category').value;
+
+  const obj={
+    expenseamount,
+    description,
+    category
+  }
+
+   const expensedata=await axios.post('http://localhost:3000/userexpense/addexpense',obj,{ headers: { "Authorization": token } });
+   showNewExpenseOnScreen(expensedata.data);
+//    const showexpense= await axios.get('http://localhost:3000/premium/showleaderboard');
+//     console.log(showexpense)
+//     showexpense.data.forEach((expense) => {
+//         let ullist =  document.getElementById('listexpenses');
+//         let row = '<li>Name -'+expense.username+'    Total Expense-' + expense.total_cost + '</li>';
+//         ullist.appendChild('beforeend', row);
+//     });
+  }
+  catch(error){
+   console.log(error);
+  }
+  resetForm();
+}
+
+window.addEventListener("DOMContentLoaded",  () =>{
+const page=1;
+    const rzpbutton=document.getElementById('rzp-button1');
+ axios.get(`http://localhost:3000/userexpense/getexpenses?page=${page}`,{ headers: { "Authorization": token } }).then(response=>{
+  console.log(response)
+  if(response.data.user.ispremiumuser===true){
+    rzpbutton.parentNode.removeChild(rzpbutton);
+   const p=document.createElement('p');
+   const txt=document.createTextNode('You are a Premium User');
+   p.appendChild(txt);
+   document.body.appendChild(p);
+
+//    const downloadexpense=document.createElement('button');
+//    const downloadexpensetxt=document.createTextNode('Download Expenses');
+//    downloadexpense.appendChild(downloadexpensetxt);
+//    document.body.appendChild(downloadexpense);
+
+  }
+//   for(var i=0;i<response.data.expense.length;i++){
+//     showNewExpenseOnScreen(response.data.expense[i])
+//   }
+showNewExpenseOnScreen(response.data.expense)
+showpagination(response.data);
+}).catch(err=>console.log(err));
+
+});
+
+
+function showpagination({
+    currentPage,
+    hasNextPage,
+    nextPage,
+    hasPreviousPage,
+    previousPage,
+    lastPage
+}){
+
+   let pagination=document.getElementById('expenseTable').getElementsByTagName('tbody');
+    pagination.innerHTML='';
+
+    if(hasPreviousPage){
+        const btn2=document.createElement('button');
+        btn2.innerHTML=previousPage;
+        btn2.addEventListener('click',()=>{
+            getExpenses(previousPage);
+        })
+        pagination.appendChild(btn2);
+    }
+    const btn1=document.createElement('button');
+    btn1.innerHTML=`<h3>${currentPage}</h3>`;
+    btn1.addEventListener('click',()=>{
+        getExpenses(currentPage);
+    })
+    pagination.appendChild(btn1);
+
+    if(hasNextPage){
+        const btn3=document.createElement('button');
+        btn3.innerHTML=nextpage;
+        btn3.addEventListener('click',()=>{
+            getExpenses(nextPage);
+        })
+        pagination.appendChild(btn3);
+    }
+
+}
+
+function getExpenses(page){
+    axios.get(`http://localhost:3000/userexpense/getexpenses?page=${page}`,{ headers: { "Authorization": token } }).then(response=>{
+        console.log(response)
+        showNewExpenseOnScreen(response.data.expense)
+showpagination(response.data);
+}).catch(err=>console.log(err));
+
+
+}
+
+//delete user
+
+function removeExpense(row) {
+row.parentNode.removeChild(row);
+const id= row.cells[0].innerHTML;
+axios.get(`http://localhost:3000/userexpense/deleteexpense/${id}`,{ headers: { "Authorization": token } }) 
+}
+
+//reset form
+
+function resetForm(){
+document.getElementById('expenseamount').value='';
+document.getElementById('description').value='';
+document.getElementById('category').value='';
+// document.getElementById('userId').value = '';
+// document.getElementById('rowIndex').value = '';
+// document.getElementById('addButton').innerHTML = 'Add E';
+}
+
+function showNewExpenseOnScreen(expense){
+ let tableBody =  document.getElementById('expenseTable').getElementsByTagName('tbody')[0];
+  let row = '<tr><td hidden>'+expense.id+'</td><td>' + expense.amount + '</td><td>' + expense.description + '</td><td>' + expense.category + '</td><td><button type="button" class="btn btn-sm btn-danger" onclick="removeExpense(this.parentNode.parentNode)">Delete</button></td></tr>';
+  tableBody.insertAdjacentHTML('beforeend', row);
+}
+
+
+
+function download() {
+  axios.get('http://localhost:3000/user/download', { headers: { "Authorization": token } })
+      .then((response) => {
+        console.log(response);
+          if (response.status === 200) {
+              var a = document.createElement("a");
+              a.href = response.data.fileUrl;
+              a.download = 'myexpense.csv';
+              a.click();
+          } else {
+              throw new Error(response.data.message);
+          }
+      })
+      .catch((err) => {
+          console.log(err);
+      });
+}
+
+document.getElementById('rzp-button1').addEventListener('click', async function (e) {
+    const rzpbutton=document.getElementById('rzp-button1');
+    const response = await axios.get('http://localhost:3000/purchase/premiummembership', { headers: { "Authorization": token } });
+ //   console.log(response);
+    var options = {
+        "key": response.data.key_id,
+        "order_id": response.data.order.id,
+        "handler": function (response) {
+           // console.log(response);
+            axios.post('http://localhost:3000/purchase/updatetransactionstatus', {
+                order_id: options.order_id,
+                payment_id: response.razorpay_payment_id,
+            }, { headers: { "Authorization": token } })
+                .then(() => {
+                    alert('You are a Premium User Now');
+                    rzpbutton.parentNode.removeChild(rzpbutton);
+                    const p=document.createElement('p');
+                    const txt=document.createTextNode('You are a Premium User');
+                    p.appendChild(txt);
+                    document.body.appendChild(p);
+                })
+                .catch(() => {
+                    alert('Something went wrong. Try Again!!!');
+                });
+        }
+    };
+    const rzp1 = new Razorpay(options);
+    rzp1.open();
+    e.preventDefault();
+
+    rzp1.on('payment.failed', function (response) {
+     // console.log(response);
+       // alert("Something Went Wrong");
+       axios.post('http://localhost:3000/purchase/updatetransactionstatus', {
+        order_id: response.error.metadata.order_id,
+        payment_id: response.error.metadata.payment_id,
+        reason:response.error.reason
+    }, { headers: { "Authorization": token } })
+        .then(() => {
+            alert('Your Payment Failed');
+        })
+        .catch(() => {
+            alert('Something went wrong. Try Again!!!');
+        });
+        // alert(response.error.code);
+        // alert(response.error.description);
+        // alert(response.error.source);
+        // alert(response.error.step);
+        // alert(response.error.reason);
+        // alert(response.error.metadata.order_id);
+        // alert(response.error.metadata.payment_id);
+    });
+});
+
+
+///adexpense.js backend
+
+const path = require('path');
+const Expense = require('../models/addexpense');
+const sequelize = require('../util/database');
+
+
+const S3services=require('../Services/s3services');
+
+exports.downloadExpenses=async(req,res)=>{
+  try{
+    const expenses=await Expense.findAll({where:{userId:req.user.id}});
+    console.log(expenses);
+    const stringyfiedExpenses=JSON.stringify(expenses);
+    const userId=req.user.id;
+    const filename=`Expense${userId}/${new Date()}.txt`;
+    const fileUrl= await S3services.uploadToS3(stringyfiedExpenses,filename);
+    console.log(fileUrl);
+    res.status(200).json({fileUrl,success:true})
+  }
+  catch(err){
+    console.log(err);
+    res.status(500).json({fileUrl:'',success:false,err:err});
+  }
+}
+
+
+
+exports.AddExpense = async(req, res) => {
+  try{
+    const t= await sequelize.transaction();
+  const amount=req.body.expenseamount;
+  const description=req.body.description;
+  const category=req.body.category;
+  const expensdata=await Expense.create({
+    amount:amount,
+    description:description,
+    category:category,
+    userId:req.user.id
+  },{transaction:t});
+    let expenseamount=parseInt(req.user.totalexpenses);
+      expenseamount=expenseamount+parseInt(expensdata.amount);
+   await req.user.update({totalexpenses:expenseamount},{transaction:t});
+    await t.commit();
+   return  res.json(expensdata);
+  }
+catch(err){
+  await t.rollback();
+ res.status(500).json(err);
+}
+
+};
+
+exports.getexpenses = (req, res) => {
+    const page = parseInt(req.query.page) || 1;   
+    const limit = parseInt(req.query.limit) || 10; 
+
+    const offset = (page - 1) * limit;
+
+    req.user.getExpenses({
+        offset,
+        limit,
+        order: [['createdAt', 'DESC']]
+    })
+    .then(expenses => {
+        return res.status(200).json({ expenses,user:req.user, success: true, currentPage: page });
+    })
+    .catch(err => {
+        return res.status(402).json({ error: err, success: false });
+    });
+}
+
+exports.deleteexpense=async (req,res,next)=>{
+  const t= await sequelize.transaction();
+  try{
+        const expenseid=req.params.expenseId;
+        const expense=await Expense.findOne({where:{id:expenseid}});
+        const deletedexpense= await expense.destroy({transaction:t});
+        let expenseamount=parseInt(req.user.totalexpenses);
+        expenseamount=expenseamount-parseInt(expense.amount);
+       await req.user.update({totalexpenses:expenseamount},{transaction:t});
+        await t.commit();
+        return res.json(deletedexpense);
+  }
+  catch(err){
+    await t.rollback();
+   console.log(err)
+  }
+}
+
+
