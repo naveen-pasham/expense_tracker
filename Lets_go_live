@@ -1,0 +1,86 @@
+//app.js
+
+const path = require('path');
+
+const express = require('express');
+const bodyParser = require('body-parser');
+
+const errorController = require('./controllers/error');
+const sequelize=require('./util/database');
+const cors=require('cors');
+const dotenv = require('dotenv');
+
+
+const helmet=require('helmet');
+const Compression=require('Compression');
+const morgan=require('morgan');
+const fs=require('fs');
+
+
+dotenv.config();
+const User=require('./models/signup');
+const Expense=require('./models/addexpense');
+const Order = require('./models/orders');
+const Forgotpassword = require('./models/forgotpassword');
+
+const app = express();
+
+const userRoutes = require('./routes/signup');
+const expenseRoutes = require('./routes/addexpense');
+const purchaseRoutes = require('./routes/purchase');
+const premiumRoutes = require('./routes/premium');
+const forgotpasswordRoutes = require('./routes/forgotpassword');
+
+
+app.use(cors());
+app.use(bodyParser.json({ extended: false }));
+
+app.use('/user', userRoutes);
+app.use('/userexpense', expenseRoutes);
+app.use('/purchase', purchaseRoutes);
+app.use('/premium', premiumRoutes);
+app.use('/password', forgotpasswordRoutes);
+
+
+User.hasMany(Expense);
+Expense.belongsTo(User);
+
+User.hasMany(Order);
+Order.belongsTo(User);
+
+User.hasMany(Forgotpassword);
+Forgotpassword.belongsTo(User);
+
+
+const accessLogStram=fs.createWriteStream(
+  path.join(__dirname,'access.log'),
+  {flags:'a'}
+);
+
+app.use(helmet());
+app.use(Compression());
+app.use(morgan('combined',{stream:accessLogStram}));
+
+
+app.use(errorController.get404);
+
+sequelize
+//.sync({force: true})
+.sync()
+  .then(result => {
+    app.listen(3000);
+  })
+  .catch(err => {
+    console.log(err);
+  });
+
+
+// .env file
+
+TOKEN_SECRET='576788joidjoj6787898090ihjikjlkkllklmlml'
+RAZORPAY_KEY_ID='rzp_test_UTBEGvsgtZlHl5'
+RAZORPAY_KEY_SECRET='OMQMQNlCR10kdtotQduCRGwV'
+API_KEY='xkeysib-a1df302ffbcf24079883382591e265a80h543653b082d24b70cd68c5d4a6467fb-9gWohbWZxtN4b2Mv'
+BUCKET_NAME='expensetrackerappsytem'
+IAM_USER_KEY='AKIA6GBLKJYDSES2SAQ5'
+IAM_USER_SECRET='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'
