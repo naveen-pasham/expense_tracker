@@ -80,9 +80,9 @@ catch(err){
 };
 
 exports.getexpenses=(req,res,next)=>{
-  const page=parseInt(req.query.page) ;
+  const page=parseInt(req.query.page) || 1;
  // console.log(page)
-  const ITEMS_PER_PAGE = parseInt(req.query.itemsPerPage); 
+  const ITEMS_PER_PAGE = parseInt(req.query.itemsPerPage) || 10; 
  // console.log(ITEMS_PER_PAGE);
   let totalItems;
   Expense.findAll({attributes:['userId',[sequelize.fn('count',sequelize.col('userId')),'nooftimes']],

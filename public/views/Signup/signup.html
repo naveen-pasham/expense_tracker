@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <title>signup</title>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+ <style>  
+ 
+
+body {
+  
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+        
+ .container {
+     margin-top: 100px;
+ }
+ form {
+  margin: 50px;
+     padding: 10px;
+     background-color: white;
+     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+     border-radius: 5px;
+ }
+ label {
+     font-weight: bold;
+ }
+ .form-control {
+     margin-bottom: 10px;
+ }
+ #addButton {
+     background-color: #007bff;
+     position: relative;
+
+     left: 40%;
+     color: #ffffff;
+     border: none;
+     padding: 10px 20px;
+     border-radius: 5px;
+     cursor: pointer;
+ }
+ #addButton:hover {
+     background-color: #0056b3;
+ }
+ h1{
+    padding: 20px;
+     color: #04d547;
+     font-family: sans-serif;
+     text-align: center;
+ }
+ #userstatus{
+    font-family: sans-serif;
+    color: red;
+ }
+</style>
+</head>
+ <body>
+    <div class="container" >
+      
+      
+     <div class="row">
+      <div class="col-md-6 mx-auto">
+       <form onsubmit="adduser(event)">
+       
+            <h1>Sign Up</h1>
+        <div class="form-group">
+            <label for="username">User Name :</label>
+            <input type="text" id="username" name="username" class="form-control" required>
+           </div>
+           <div class="form-group">
+            <label for="email">Email Adress:</label>
+            <input type="email" id="email" name="email" class="form-control" required>
+           </div>
+           <div class="form-group">
+            <label for="password">Password :</label>
+            <input type="password" id="password" name="password" class="form-control" required>
+           </div>
+           <h3 id="userstatus"></h3>
+           <div class="form-group">
+            <button type="submit" id="addButton" class="btn btn-primary">Sign Up</button>
+           </div>
+        
+           
+       </form>
+      
+      </div>
+     </div></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js"></script>
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js" integrity="sha512-NQfB/bDaB8kaSXF8E77JjhHG5PM6XVRxvHzkZiwl3ddWCEPBa23T76MuWSwAJdMGJnmQqM0VeY9kFszsrBEFrQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>-->
+    
+    <script src="signup.js"></script>
+ </body></html>
