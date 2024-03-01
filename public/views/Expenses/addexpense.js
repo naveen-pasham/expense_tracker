@@ -205,10 +205,7 @@ document.getElementById('rzp-button1').addEventListener('click', async function 
                 .then(() => {
                     alert('You are a Premium User Now');
                     rzpbutton.parentNode.removeChild(rzpbutton);
-                    const p=document.createElement('p');
-                    const txt=document.createTextNode('You are a Premium User');
-                    p.appendChild(txt);
-                    document.body.appendChild(p);
+                    document.getElementById('premiumuser').innerHTML='You are a Premium User'
                 })
                 .catch(() => {
                     alert('Something went wrong. Try Again!!!');
