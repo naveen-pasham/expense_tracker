@@ -1,7 +1,7 @@
 async function showTab(tabId) {
     if(tabId==='monthly'){
      
-          const expense= await axios.get(`http://16.16.122.223:3000/userexpense/getexpenses?page=${page}&itemsPerPage=${itemsPerPage}`,{ headers: { "Authorization": token } })
+          const expense= await axios.get(`http://13.48.124.79:3000/userexpense/getexpenses?page=${page}&itemsPerPage=${itemsPerPage}`,{ headers: { "Authorization": token } })
          // console.log(expense)
           for(let i=0;i<expense.data.expense.length;i++){
             let result=expense.data.expense[i];
@@ -21,7 +21,7 @@ async function showTab(tabId) {
 
     }
     if(tabId==='yearly'){
-        const expense= await axios.get(`http://16.16.122.223:3000/userexpense/getexpenses?page=${page}&itemsPerPage=${itemsPerPage}`,{ headers: { "Authorization": token } })
+        const expense= await axios.get(`http://13.48.124.79:3000/userexpense/getexpenses?page=${page}&itemsPerPage=${itemsPerPage}`,{ headers: { "Authorization": token } })
          // console.log(expense)
           let months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
             let result=expense.data.user;

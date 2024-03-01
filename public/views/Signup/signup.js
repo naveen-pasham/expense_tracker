@@ -11,9 +11,9 @@
       email,
       password
     }
-   const userdata=await axios.get(`http://16.16.122.223:3000/user/getusers/${email}`);
+   const userdata=await axios.get(`http://13.48.124.79:3000/user/getusers/${email}`);
    if(userdata.data===null){
-      const registerdata=await axios.post('http://16.16.122.223:3000/user/signup',obj)
+      const registerdata=await axios.post('http://13.48.124.79:3000/user/signup',obj)
       usesrstatus.innerText=registerdata.data.message;
       if(registerdata.data.message==='Succesfully Created New User'){
         window.location.href = "../Login/login.html" 

@@ -10,7 +10,7 @@
       password
     }
   
-     const logindata=await axios.post('http://16.16.122.223:3000/user/login',obj);
+     const logindata=await axios.post('http://13.48.124.79:3000/user/login',obj);
        usesrstatus.innerText=logindata.data.message;
         if(logindata.data.message==="User Login Sucessfully!!"){
           localStorage.setItem('token', logindata.data.token);
