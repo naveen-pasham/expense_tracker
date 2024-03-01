@@ -52,7 +52,6 @@ app.use('/password', forgotpasswordRoutes);
 
 app.use((req,res)=>{
   console.log('url', req.url);
-  console.log("Req succesfull logged");
   res.sendFile(path.join(__dirname, `public/views/${req.url}`))
 })
 
