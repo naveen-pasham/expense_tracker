@@ -1,3 +1,9 @@
+ 
+document.getElementById('login').addEventListener('click',()=>{
+  user(event);
+})
+
+ 
  // add user 
  async function user(event) {
     try{

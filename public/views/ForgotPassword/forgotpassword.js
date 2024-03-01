@@ -1,4 +1,9 @@
 
+document.getElementById('forgot').addEventListener('click',()=>{
+    forgotpassword(event);
+})
+
+
     async function forgotpassword(event) {
         try{
         event.preventDefault();
