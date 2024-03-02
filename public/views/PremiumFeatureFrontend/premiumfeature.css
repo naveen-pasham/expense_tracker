@@ -1,3 +1,7 @@
+body{
+    margin: 5%;
+}
+
 .tab {
     width: 30%;
     padding: 10px 20px;
@@ -29,4 +33,16 @@
 .tabs-container .tab:hover,.tabs-container .tab:active{
     background:green;
   }
- 
+
+#rowsatright{
+    display: flex;
+    justify-content: flex-end;
+}
+#plusbutton{
+    display: flex;
+    justify-content: flex-end;
+    margin-right: 5%;
+}
+#premiumuser{
+  color: blue;
+}
