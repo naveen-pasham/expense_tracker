@@ -42,8 +42,8 @@ const accessLogStream=fs.createWriteStream(
 app.use(morgan('combined',{stream:accessLogStream}));
 app.use(function (req, res, next) {
   res.setHeader(
-    'Content-Security-Policy-Report-Only',
-    "default-src 'self'; font-src 'self' ; img-src 'self' ; script-src 'self' https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js 'unsafe-inline' 'unsafe-eval';style-src 'self' 'unsafe-inline'; frame-src 'self';"
+    'Content-Security-Policy',
+    "default-src 'self'; font-src 'self' ; img-src 'self' ; script-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline' 'unsafe-eval';object-src 'self'; script-src-elem 'self' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; frame-src 'self';"
   );
   next();
 });
