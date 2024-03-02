@@ -40,6 +40,13 @@ const accessLogStream=fs.createWriteStream(
 );
  
 app.use(morgan('combined',{stream:accessLogStream}));
+app.use(function (req, res, next) {
+  res.setHeader(
+    'Content-Security-Policy-Report-Only',
+    "default-src 'self'; font-src 'self' ; img-src 'self' ; script-src 'self' https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js 'unsafe-inline' 'unsafe-eval';style-src 'self' 'unsafe-inline'; frame-src 'self';"
+  );
+  next();
+});
 
 app.use(cors());
 app.use(bodyParser.json({ extended: false }));
