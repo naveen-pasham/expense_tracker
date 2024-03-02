@@ -40,13 +40,7 @@ const accessLogStream=fs.createWriteStream(
 );
  
 app.use(morgan('combined',{stream:accessLogStream}));
-app.use(function (req, res, next) {
-  res.setHeader(
-    'Content-Security-Policy-Report-Only',
-    "default-src 'self'; font-src 'self' ; img-src 'self' ; script-src 'self' 'unsafe-inline' 'unsafe-eval'; object-src 'self'; script-src-elem 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self'; frame-src 'self';"
-  );
-  next();
-});
+
 
 app.use(cors());
 app.use(bodyParser.json({ extended: false }));
