@@ -41,6 +41,14 @@ const accessLogStream=fs.createWriteStream(
  
 app.use(morgan('combined',{stream:accessLogStream}));
 
+app.use(function (req, res, next) {
+  res.setHeader(
+    'Content-Security-Policy-Report-Only',
+    "default-src 'self'; font-src 'self'; img-src 'self'; script-src 'self' https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js  https://checkout.razorpay.com/v1/checkout.js  https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js  https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js  https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js; style-src 'self' https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css  https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css  https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css; frame-src 'self'"
+  );
+  next();
+});
+
 
 app.use(cors());
 app.use(bodyParser.json({ extended: false }));
