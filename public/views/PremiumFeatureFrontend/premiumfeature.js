@@ -26,7 +26,7 @@ async function showTab(tabId) {
           let months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
             let result=expense.data.user;
             let date=new Date(result.updatedAt);
-            let currentmonth=months[date.getMonth()];
+            let currentmonth=months[date.getMonth()-1];
               let tableBody =  document.getElementById('expenseyearly').getElementsByTagName('tbody')[0];
               let row =  `<tr><td>${currentmonth}</td><td>${result.Income}</td><td>${result.Expenses}</td><td>${result.Income-result.Expenses}</td></tr>`;
               tableBody.insertAdjacentHTML('beforeend', row);
