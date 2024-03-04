@@ -19,9 +19,9 @@ async function expense(event) {
     amounttype
   }
 
-   const expensedata=await axios.post('http://13.48.124.79:3000/userexpense/addexpense',obj,{ headers: { "Authorization": token } });
+   const expensedata=await axios.post('http://localhost:3000/userexpense/addexpense',obj,{ headers: { "Authorization": token } });
    showNewExpenseOnScreen(expensedata.data);
-//    const showexpense= await axios.get('http://13.48.124.79:3000/premium/showleaderboard');
+//    const showexpense= await axios.get('http://localhost:3000/premium/showleaderboard');
 //     console.log(showexpense)
 //     showexpense.data.forEach((expense) => {
 //         let ullist =  document.getElementById('listexpenses');
@@ -39,7 +39,7 @@ async function expense(event) {
 document.getElementById('itemsforpage').addEventListener('click', () => {
     const itemsPerPage = document.getElementById('itemsforpage').value;
     localStorage.setItem('itemsPerPage',itemsPerPage);
- //   document.getElementById('expenseTable').getElementsByTagName('tbody')[0].innerHTML=' ';
+    document.getElementById('expenseTable').getElementsByTagName('tbody')[0].innerHTML=' ';
    // document.getElementById('itemsforpage').value=itemsPerPage
     getExpenses(page,itemsPerPage)
 });
@@ -50,7 +50,7 @@ window.addEventListener("DOMContentLoaded",  () =>{
     getExpenses(page,itemsPerPage);
 //     const rzpbutton=document.getElementById('rzp-button1');
 //     document.getElementById('itemsforpage').value=itemsPerPage
-//  axios.get(`http://13.48.124.79:3000/userexpense/getexpenses?page=${page}&itemsPerPage=${itemsPerPage}`,{ headers: { "Authorization": token } }).then(response=>{
+//  axios.get(`http://localhost:3000/userexpense/getexpenses?page=${page}&itemsPerPage=${itemsPerPage}`,{ headers: { "Authorization": token } }).then(response=>{
 //   console.log(response)
 //   if(response.data.user.ispremiumuser===true){
 //     rzpbutton.parentNode.removeChild(rzpbutton);
@@ -118,7 +118,7 @@ function showpagination({
 function getExpenses(page,itemsPerPage){
     const rzpbutton=document.getElementById('rzp-button1');
     document.getElementById('itemsforpage').value=itemsPerPage
-    axios.get(`http://13.48.124.79:3000/userexpense/getexpenses?page=${page}&itemsPerPage=${itemsPerPage}`,{ headers: { "Authorization": token } }).then(response=>{
+    axios.get(`http://localhost:3000/userexpense/getexpenses?page=${page}&itemsPerPage=${itemsPerPage}`,{ headers: { "Authorization": token } }).then(response=>{
         console.log(response)
         if(response.data.user.ispremiumuser===true){
             rzpbutton.parentNode.removeChild(rzpbutton);
@@ -149,7 +149,7 @@ function getExpenses(page,itemsPerPage){
 function removeExpense(row) {
 row.parentNode.removeChild(row);
 const id= row.cells[0].innerHTML;
-axios.get(`http://13.48.124.79:3000/userexpense/deleteexpense/${id}`,{ headers: { "Authorization": token } }) 
+axios.get(`http://localhost:3000/userexpense/deleteexpense/${id}`,{ headers: { "Authorization": token } }) 
 }
 
 //reset form
@@ -172,7 +172,7 @@ function showNewExpenseOnScreen(expense){
 
 
 function download() {
-  axios.get('http://13.48.124.79:3000/user/download', { headers: { "Authorization": token } })
+  axios.get('http://localhost:3000/user/download', { headers: { "Authorization": token } })
       .then((response) => {
         console.log(response);
           if (response.status === 200) {
@@ -191,14 +191,14 @@ function download() {
 
 document.getElementById('rzp-button1').addEventListener('click', async function (e) {
     const rzpbutton=document.getElementById('rzp-button1');
-    const response = await axios.get('http://13.48.124.79:3000/purchase/premiummembership', { headers: { "Authorization": token } });
+    const response = await axios.get('http://localhost:3000/purchase/premiummembership', { headers: { "Authorization": token } });
  //   console.log(response);
     var options = {
         "key": response.data.key_id,
         "order_id": response.data.order.id,
         "handler": function (response) {
            // console.log(response);
-            axios.post('http://13.48.124.79:3000/purchase/updatetransactionstatus', {
+            axios.post('http://localhost:3000/purchase/updatetransactionstatus', {
                 order_id: options.order_id,
                 payment_id: response.razorpay_payment_id,
             }, { headers: { "Authorization": token } })
@@ -219,7 +219,7 @@ document.getElementById('rzp-button1').addEventListener('click', async function 
     rzp1.on('payment.failed', function (response) {
      // console.log(response);
        // alert("Something Went Wrong");
-       axios.post('http://13.48.124.79:3000/purchase/updatetransactionstatus', {
+       axios.post('http://localhost:3000/purchase/updatetransactionstatus', {
         order_id: response.error.metadata.order_id,
         payment_id: response.error.metadata.payment_id,
         reason:response.error.reason
