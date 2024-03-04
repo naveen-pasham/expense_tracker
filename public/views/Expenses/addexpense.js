@@ -39,7 +39,7 @@ async function expense(event) {
 document.getElementById('itemsforpage').addEventListener('click', () => {
     const itemsPerPage = document.getElementById('itemsforpage').value;
     localStorage.setItem('itemsPerPage',itemsPerPage);
-    document.getElementById('expenseTable').getElementsByTagName('tbody')[0].innerHTML=' ';
+ //   document.getElementById('expenseTable').getElementsByTagName('tbody')[0].innerHTML=' ';
    // document.getElementById('itemsforpage').value=itemsPerPage
     getExpenses(page,itemsPerPage)
 });
