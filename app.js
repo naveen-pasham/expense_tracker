@@ -31,7 +31,7 @@ const purchaseRoutes = require('./routes/purchase');
 const premiumRoutes = require('./routes/premium');
  const forgotpasswordRoutes = require('./routes/forgotpassword');
 
- app.use(helmet({contentSecurityPolicy:false}));
+ app.use(helmet());
  app.use(Compression());
  
 const accessLogStream=fs.createWriteStream(
