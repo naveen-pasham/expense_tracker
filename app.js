@@ -39,7 +39,7 @@ const accessLogStream=fs.createWriteStream(
   {flags:'a'}
 );
  
-// app.use(morgan('combined',{stream:accessLogStream}));
+ app.use(morgan('combined',{stream:accessLogStream}));
 // app.use((req,res,next)=>{
 //   res.setHeader('Access-Control-Allow-Origin','*');
 //   res.setHeader("Access-Control-Allow-Credentials", "true");
