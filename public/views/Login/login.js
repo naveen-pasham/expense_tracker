@@ -35,4 +35,4 @@ document.getElementById('login').addEventListener('click',()=>{
 
   document.getElementById('forgot').addEventListener('click',()=>{
     window.location.href = "../ForgotPassword/forgotpassword.html" 
-  })
+  });

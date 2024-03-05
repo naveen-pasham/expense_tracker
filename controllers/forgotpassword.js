@@ -29,8 +29,8 @@ const sender={
 
 const receivers=[
     {
-        email:'naveenpashamofficial@gmail.com'
-       // email:req.body.email
+       // email:'naveenpashamofficial@gmail.com'
+        email:req.body.email
     }
 ];
 
