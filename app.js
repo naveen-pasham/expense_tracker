@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 
 const errorController = require('./controllers/error');
 const sequelize=require('./util/database');
-//const cors=require('cors');
+const cors=require('cors');
 const dotenv = require('dotenv');
 const fs=require('fs');
 
@@ -39,15 +39,15 @@ const accessLogStream=fs.createWriteStream(
   {flags:'a'}
 );
  
-app.use(morgan('combined',{stream:accessLogStream}));
-app.use((req,res,next)=>{
-  res.setHeader('Access-Control-Allow-Origin','*');
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader('Access-Control-Allow-Methods','GET,POST,HEAD,OPTIONS,PUT,PATCH,DELETE');
-  res.setHeader('Access-Control-Allow-Methods','Content-Type','Authorization');
-  res.setHeader("Access-Control-Allow-Headers", "Access-Control-Allow-Headers,Authorization, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
-  next(); 
-})
+// app.use(morgan('combined',{stream:accessLogStream}));
+// app.use((req,res,next)=>{
+//   res.setHeader('Access-Control-Allow-Origin','*');
+//   res.setHeader("Access-Control-Allow-Credentials", "true");
+//   res.setHeader('Access-Control-Allow-Methods','GET,POST,HEAD,OPTIONS,PUT,PATCH,DELETE');
+//   res.setHeader('Access-Control-Allow-Methods','Content-Type','Authorization');
+//   res.setHeader("Access-Control-Allow-Headers", "Access-Control-Allow-Headers,Authorization, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
+//   next(); 
+// })
 
 // app.use(function (req, res, next) {
 //   res.setHeader(
@@ -66,7 +66,7 @@ app.use((req,res,next)=>{
 // });
 
 
-//app.use(cors());
+app.use(cors());
 app.use(bodyParser.json({ extended: false }));
 
 app.use('/user', userRoutes);
